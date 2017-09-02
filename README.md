@@ -3,6 +3,6 @@ This is a course requirement for CS191/192 Software Engineering Courses of the D
 
 Group Number: 4
 
-- Jairus John Garcia
-- Jan Daniel Laborada
-- Diane Abegail Recuerdo
+- Kim Borja
+- Jigger Angelo Pilipina
+- Ian Benedict Valencia
