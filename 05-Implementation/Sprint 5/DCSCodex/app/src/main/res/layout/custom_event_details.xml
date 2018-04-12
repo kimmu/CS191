@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     xmlns:app="http://schemas.android.com/apk/res-auto"
+     android:orientation="vertical"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+     android:padding="3dp"
+     android:background="@color/White">
+
+
+     <TextView
+          android:id="@+id/miniBackgroundHeader"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:background="@color/colorDarkerLightBlue"
+          android:fontFamily="@font/simplifica"
+          android:lineSpacingExtra="10sp"
+          android:padding="10sp"
+          android:text="Details"
+          android:letterSpacing="0.2"
+          android:textAlignment="center"
+          android:textColor="@color/colorWhite"
+          android:textSize="30sp"
+          android:textStyle="bold" />
+
+     <ImageView
+          android:id="@+id/eventImageView"
+          android:layout_width="80dp"
+          android:layout_height="50dp"
+          android:layout_marginTop="4dp"
+          android:layout_alignParentLeft="true"
+          android:layout_alignParentStart="true"
+          android:background="@color/colorWhite"
+          android:layout_below="@+id/miniBackgroundHeader"
+          android:src="@drawable/event" />
+
+     <TextView
+          android:id="@+id/eventTextView"
+          android:layout_width="335dp"
+          android:layout_height="50dp"
+          android:layout_marginTop="4dp"
+          android:layout_below="@+id/miniBackgroundHeader"
+          android:layout_toEndOf="@+id/eventImageView"
+          android:layout_toRightOf="@+id/eventImageView"
+          android:background="@color/colorSuperLightBlue"
+          android:padding="10sp"
+          android:text="Event"
+          android:letterSpacing="0.04"
+          android:textColor="@color/colorWhite"
+          android:textSize="14sp"
+          android:singleLine="true"
+          android:ellipsize="marquee"
+          android:marqueeRepeatLimit="marquee_forever"
+          android:focusable="true"
+          android:focusableInTouchMode="true"
+          android:scrollHorizontally="true"/>
+
+     <ImageView
+          android:id="@+id/profImageView"
+          android:layout_width="80dp"
+          android:layout_height="50dp"
+          android:layout_marginTop="3dp"
+          android:layout_alignParentLeft="true"
+          android:layout_alignParentStart="true"
+          android:background="@color/colorWhite"
+          android:layout_below="@+id/eventImageView"
+          android:src="@drawable/professor" />
+
+     <TextView
+          android:id="@+id/profTextView"
+          android:layout_width="335dp"
+          android:layout_height="50dp"
+          android:layout_alignTop="@+id/profImageView"
+          android:layout_toEndOf="@+id/profImageView"
+          android:layout_toRightOf="@+id/profImageView"
+          android:background="@color/colorSuperLightBlue"
+          android:letterSpacing="0.04"
+          android:padding="10sp"
+          android:text="Professor"
+          android:textColor="@color/colorWhite"
+          android:textSize="14sp"
+          android:singleLine="true"
+          android:ellipsize="marquee"
+          android:marqueeRepeatLimit="marquee_forever"
+          android:focusable="true"
+          android:focusableInTouchMode="true"
+          android:scrollHorizontally="true"/>
+
+     <ImageView
+          android:id="@+id/subjectImageView"
+          android:layout_width="80dp"
+          android:layout_height="50dp"
+          android:layout_marginTop="3dp"
+          android:layout_alignParentLeft="true"
+          android:layout_alignParentStart="true"
+          android:background="@color/colorWhite"
+          android:layout_below="@+id/profImageView"
+          android:src="@drawable/subject" />
+
+     <TextView
+          android:id="@+id/subjectTextView"
+          android:layout_width="335dp"
+          android:layout_height="50dp"
+          android:layout_alignTop="@+id/subjectImageView"
+          android:layout_toEndOf="@+id/subjectImageView"
+          android:layout_toRightOf="@+id/subjectImageView"
+          android:background="@color/colorSuperLightBlue"
+          android:letterSpacing="0.04"
+          android:padding="10sp"
+          android:text="Subject"
+          android:textColor="@color/colorWhite"
+          android:textSize="14sp"
+          android:singleLine="true"
+          android:ellipsize="marquee"
+          android:marqueeRepeatLimit="marquee_forever"
+          android:focusable="true"
+          android:focusableInTouchMode="true"
+          android:scrollHorizontally="true"/>
+
+     <ImageView
+          android:id="@+id/timeImageView"
+          android:layout_width="80dp"
+          android:layout_height="50dp"
+          android:layout_marginTop="3dp"
+          android:layout_alignParentLeft="true"
+          android:layout_alignParentStart="true"
+          android:background="@color/colorWhite"
+          android:layout_below="@+id/subjectImageView"
+          android:src="@drawable/time" />
+
+     <TextView
+          android:id="@+id/timeTextView"
+          android:layout_width="335dp"
+          android:layout_height="50dp"
+          android:layout_alignTop="@+id/timeImageView"
+          android:layout_toEndOf="@+id/timeImageView"
+          android:layout_toRightOf="@+id/timeImageView"
+          android:background="@color/colorSuperLightBlue"
+          android:letterSpacing="0.04"
+          android:padding="10sp"
+          android:text="Time"
+          android:textColor="@color/colorWhite"
+          android:textSize="14sp"
+          android:singleLine="true"
+          android:ellipsize="marquee"
+          android:marqueeRepeatLimit="marquee_forever"
+          android:focusable="true"
+          android:focusableInTouchMode="true"
+          android:scrollHorizontally="true"/>
+
+     <ImageView
+          android:id="@+id/descriptionImageView"
+          android:layout_width="80dp"
+          android:layout_height="50dp"
+          android:layout_marginTop="3dp"
+          android:layout_alignParentLeft="true"
+          android:layout_alignParentStart="true"
+          android:background="@color/colorWhite"
+          android:layout_below="@+id/timeImageView"
+          android:src="@drawable/description" />
+
+     <TextView
+          android:id="@+id/descriptionTextView"
+          android:layout_width="335dp"
+          android:layout_height="50dp"
+          android:layout_alignTop="@+id/descriptionImageView"
+          android:layout_toEndOf="@+id/descriptionImageView"
+          android:layout_toRightOf="@+id/descriptionImageView"
+          android:background="@color/colorSuperLightBlue"
+          android:letterSpacing="0.04"
+          android:padding="10sp"
+          android:text="Description"
+          android:textColor="@color/colorWhite"
+          android:textSize="14sp"
+          android:singleLine="true"
+          android:ellipsize="marquee"
+          android:marqueeRepeatLimit="marquee_forever"
+          android:focusable="true"
+          android:focusableInTouchMode="true"
+          android:scrollHorizontally="true"/>
+
+</RelativeLayout>
