@@ -31,6 +31,10 @@ Borja, Kim                    02/17/18                    Created UI for calenda
 Borja, Kim                    03/07/18                    Added a floating action button for
                                                           the request event functionality
 
+Borja, Kim                    04/04/18                    Added Rejected, Pending, and Accepted buttons
+
+Borja, Kim                    04/21/18                    Removed the Accepted button
+
 -->
 
 
@@ -161,9 +165,10 @@ Purpose: For UI design of calendar page
 
      <TextView
           android:id="@+id/miniHeader"
-          android:layout_width="87dp"
+          android:layout_width="221dp"
           android:layout_height="29dp"
-          android:layout_marginStart="36dp"
+          android:layout_marginStart="72dp"
+          android:layout_marginLeft="72dp"
           android:layout_marginTop="28dp"
           android:background="@drawable/shape_request_header"
           android:lineSpacingExtra="10sp"
@@ -177,28 +182,11 @@ Purpose: For UI design of calendar page
 
 
      <ImageButton
-          android:id="@+id/pendingImageButton"
-          android:layout_width="96dp"
-          android:layout_height="98dp"
-          android:layout_marginEnd="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginTop="56dp"
-          android:background="?attr/selectableItemBackgroundBorderless"
-          android:padding="10dp"
-          android:scaleType="fitCenter"
-          android:src="@drawable/pending"
-          android:text="Button"
-          android:tint="@color/colorSuperLightBlue"
-          app:layout_constraintEnd_toStartOf="@+id/acceptedImageButton"
-          app:layout_constraintHorizontal_bias="0.485"
-          app:layout_constraintStart_toEndOf="@+id/rejectedImageButton"
-          app:layout_constraintTop_toBottomOf="@+id/compactCalendarView" />
-
-     <ImageButton
           android:id="@+id/rejectedImageButton"
-          android:layout_width="96dp"
-          android:layout_height="98dp"
-          android:layout_marginStart="36dp"
+          android:layout_width="119dp"
+          android:layout_height="109dp"
+          android:layout_marginStart="60dp"
+          android:layout_marginLeft="60dp"
           android:background="?attr/selectableItemBackgroundBorderless"
           android:padding="10dp"
           android:scaleType="fitCenter"
@@ -209,21 +197,20 @@ Purpose: For UI design of calendar page
           app:layout_constraintTop_toBottomOf="@+id/miniHeader" />
 
      <ImageButton
-          android:id="@+id/acceptedImageButton"
-          android:layout_width="96dp"
-          android:layout_height="98dp"
-          android:layout_marginEnd="36dp"
+          android:id="@+id/pendingImageButton"
+          android:layout_width="117dp"
+          android:layout_height="118dp"
+          android:layout_marginStart="12dp"
+          android:layout_marginLeft="12dp"
           android:layout_marginTop="56dp"
           android:background="?attr/selectableItemBackgroundBorderless"
           android:padding="10dp"
           android:scaleType="fitCenter"
-          android:src="@drawable/accepted"
+          android:src="@drawable/pending"
           android:text="Button"
           android:tint="@color/colorSuperLightBlue"
-          app:layout_constraintEnd_toEndOf="parent"
+          app:layout_constraintStart_toEndOf="@+id/rejectedImageButton"
           app:layout_constraintTop_toBottomOf="@+id/compactCalendarView" />
-
-
 
 
 </android.support.constraint.ConstraintLayout>

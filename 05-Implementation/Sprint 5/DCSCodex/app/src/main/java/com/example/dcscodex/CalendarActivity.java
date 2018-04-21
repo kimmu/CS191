@@ -32,6 +32,7 @@ package com.example.dcscodex;
 *
 * Borja, Kim                    02/21/18                    Added necessary comments
 *
+* Borja, Kim                    04/04/18                    Created DownloaderForRequests and MyParserForRequests class
 *
 */
 
@@ -71,12 +72,16 @@ import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -91,15 +96,15 @@ public class CalendarActivity extends AppCompatActivity {
      CalendarView calendarView;
      CompactCalendarView compactCalendarView;
      private SimpleDateFormat dateFormatMonth = new SimpleDateFormat("MMMM-yyyy", Locale.getDefault());
-     int syncButtonFlag = 0, parsingFlag = 0, parsingRequestFlag = 0, listDateSize = 0, counter = 0; // reqeustsFlag indicates if one of the view requests button has been clicked
-     String localhost = "http://192.168.254.112/";
-     String json_events_url = localhost + "fetchevents_dcscodex.php";  /* must always be checked and replaced by the current IP address */
+     int syncButtonFlag = 0, parsingFlag = 0, parsingRequestFlag = 0, listDateSize = 0; /* reqeustsFlag indicates if one of the view requests button has been clicked */
+     String localhost = "http://192.168.254.112/";                     /* must always be checked and replaced by the current IP address */
+     String json_events_url = localhost + "fetchevents_dcscodex.php";
      String json_requests_url = localhost + "fetchrequestedevents_dcscodex.php";
      String date = null;
      String dataResult = null, dataResultRequest = null;
      MyParser parser;
      MyParserForRequests parserForRequests;
-     String user_id, status;
+     String user_id, status = "";
      TextView monthYear;
      ImageButton pendingImageButton, rejectedImageButton, acceptedImageButton;
 
@@ -119,15 +124,6 @@ public class CalendarActivity extends AppCompatActivity {
      ArrayList<String> listTimesOfDateClicked = new ArrayList<String>();
      ArrayList<String> listDescriptionsOfDateClicked = new ArrayList<String>();
 
-
-
-     ArrayList<String> listRequestStatus = new ArrayList<String>();
-     ArrayList<String> listRequestDate = new ArrayList<String>();
-     ArrayList<String> listRequestTitle = new ArrayList<String>();
-     ArrayList<String> listRequestProf = new ArrayList<String>();
-     ArrayList<String> listRequestSubject = new ArrayList<String>();
-     ArrayList<String> listRequestTime = new ArrayList<String>();
-     ArrayList<String> listRequestDescription = new ArrayList<String>();
      
 
      ArrayList<String> listPendingDate = new ArrayList<String>();
@@ -144,12 +140,7 @@ public class CalendarActivity extends AppCompatActivity {
      ArrayList<String> listRejectedTime = new ArrayList<String>();
      ArrayList<String> listRejectedDescription = new ArrayList<String>();
 
-     ArrayList<String> listAcceptedDate = new ArrayList<String>();
-     ArrayList<String> listAcceptedTitle = new ArrayList<String>();
-     ArrayList<String> listAcceptedProf = new ArrayList<String>();
-     ArrayList<String> listAcceptedSubject = new ArrayList<String>();
-     ArrayList<String> listAcceptedTime = new ArrayList<String>();
-     ArrayList<String> listAcceptedDescription = new ArrayList<String>();
+
 
 
 
@@ -175,19 +166,18 @@ public class CalendarActivity extends AppCompatActivity {
           monthYear.setText(dateFormatMonth.format(compactCalendarView.getFirstDayOfCurrentMonth()));
 
 
-          Intent incomingIntent = getIntent();                        // will retrieve any data from an incoming intent
-          user_id = incomingIntent.getStringExtra("id");        // pass to RequestActivity.class so that user won't type the student number again
+          Intent incomingIntent = getIntent();                        /* will retrieve any data from an incoming intent */
+          user_id = incomingIntent.getStringExtra("id");        /* pass to RequestActivity.class so that user won't type the student number again */
 
 
 
-          //floating action buttons on calendar page
+          /* floating action buttons on calendar page */
           FloatingActionButton syncFAB, requestEventFAB, logOutFAB;
           syncFAB = findViewById(R.id.floatingActionButtonSync);
           requestEventFAB = findViewById(R.id.floatingActionButtonRequest);
           logOutFAB = findViewById(R.id.floatingActionButtonLogOut);
           pendingImageButton = (ImageButton) findViewById(R.id.pendingImageButton);
           rejectedImageButton = (ImageButton) findViewById(R.id.rejectedImageButton);
-          acceptedImageButton = (ImageButton) findViewById(R.id.acceptedImageButton);
 
           requestEventFAB.setOnClickListener(new View.OnClickListener() {
                @Override
@@ -208,10 +198,26 @@ public class CalendarActivity extends AppCompatActivity {
                          final Downloader downloader = new Downloader(CalendarActivity.this);
                          downloader.execute();
                          final DownloaderForRequests downloaderRequests = new DownloaderForRequests(CalendarActivity.this);
-                         downloaderRequests.execute(); // newly added
+                         downloaderRequests.execute(); /* for downloading the requested events from the database */
                          syncButtonFlag = 1;
                          parsingFlag = 0;
                          parsingRequestFlag = 0;
+
+                         listPendingTitle.clear();
+                         listPendingDate.clear();
+                         listPendingTime.clear();
+                         listPendingProf.clear();
+                         listPendingSubject.clear();
+                         listPendingDescription.clear();
+
+                         listRejectedTitle.clear();
+                         listRejectedDate.clear();
+                         listRejectedTime.clear();
+                         listRejectedProf.clear();
+                         listRejectedSubject.clear();
+                         listRejectedDescription.clear();
+
+
 
                     } else {
                          Toast.makeText(CalendarActivity.this, "You have no internet connection", Toast.LENGTH_SHORT).show();
@@ -224,8 +230,8 @@ public class CalendarActivity extends AppCompatActivity {
                @Override
                public void onClick(View view) {
                     Intent intent = new Intent(CalendarActivity.this, LoginActivity.class);
-                    // This ensures that when "back" button is pressed, it will just exit the app and not go back to the
-                    // previous visited activity 
+                    /* This ensures that when "back" button is pressed, it will just exit the app and not go back to the */
+                    /* previous visited activity */
                     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
@@ -237,92 +243,19 @@ public class CalendarActivity extends AppCompatActivity {
           pendingImageButton.setOnClickListener(new View.OnClickListener() {
                @Override
                public void onClick(View view) {
-                    // use EventsActivity.java and activity_events.xml
-                    // pass the title, prof, subject, time, and description to EventsActivity
-                    // then use activity_events.xml as layout
-                    String str;
-                    //Toast.makeText(CalendarActivity.this, "1 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).show();
+
                     if (syncButtonFlag == 1) {
-                        //Toast.makeText(CalendarActivity.this, "2 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).show();
                          if (parsingRequestFlag == 0) {
 
-
-                              listPendingTitle.clear();
-                              listPendingDate.clear();
-                              listPendingTime.clear();
-                              listPendingProf.clear();
-                              listPendingSubject.clear();
-                              listPendingDescription.clear();
-
-                              listRejectedTitle.clear();
-                              listRejectedDate.clear();
-                              listRejectedTime.clear();
-                              listRejectedProf.clear();
-                              listRejectedSubject.clear();
-                              listRejectedDescription.clear();
-
-                              listAcceptedTitle.clear();
-                              listAcceptedDate.clear();
-                              listAcceptedTime.clear();
-                              listAcceptedProf.clear();
-                              listAcceptedSubject.clear();
-                              listAcceptedDescription.clear();
-
-
                               parserForRequests =  new MyParserForRequests(CalendarActivity.this);
-                              //Toast.makeText(CalendarActivity.this, "3 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).show();
-
                               parserForRequests.execute();
 
-                              // Process the user's requests to be displayed
-                              // if nakaset na si requestFlag = 1 di na magdownload and parse, process na lang
-                              //String str;
-                              Toast.makeText(CalendarActivity.this, "4 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).cancel();
-
-                              for (int i = 0; i < listRequestStatus.size(); i++) {
-                                   //Toast.makeText(CalendarActivity.this, "I GO HEREEEEEEEEEE", Toast.LENGTH_SHORT).show();
-
-                                   str = listRequestStatus.get(i);
-                                   if(str.equals("pending")) {
-                                        //Toast.makeText(CalendarActivity.this, "str.equals pending", Toast.LENGTH_SHORT).show();
-
-                                        listPendingTitle.add(listRequestTitle.get(i));
-                                        listPendingDate.add(listRequestDate.get(i));
-                                        listPendingTime.add(listRequestTime.get(i));
-                                        listPendingProf.add(listRequestProf.get(i));
-                                        listPendingSubject.add(listRequestSubject.get(i));
-                                        listPendingDescription.add(listRequestDescription.get(i));
-
-                                   } else if(str.equals("rejected")) {
-
-                                        listRejectedTitle.add(listRequestTitle.get(i));
-                                        listRejectedDate.add(listRequestDate.get(i));
-                                        listRejectedTime.add(listRequestTime.get(i));
-                                        listRejectedProf.add(listRequestProf.get(i));
-                                        listRejectedSubject.add(listRequestSubject.get(i));
-                                        listRejectedDescription.add(listRequestDescription.get(i));
-
-                                   } else if(str.equals("accepted")) {
-
-                                        listAcceptedTitle.add(listRequestTitle.get(i));
-                                        listAcceptedDate.add(listRequestDate.get(i));
-                                        listAcceptedTime.add(listRequestTime.get(i));
-                                        listAcceptedProf.add(listRequestProf.get(i));
-                                        listAcceptedSubject.add(listRequestSubject.get(i));
-                                        listAcceptedDescription.add(listRequestDescription.get(i));
-
-                                   }
-                              }
+                              //Toast.makeText(CalendarActivity.this, "4 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).cancel();
                               parsingRequestFlag = 1;
                          }
 
-                         //Toast.makeText(CalendarActivity.this, "listPendingTitle.size() " + "=" + listPendingTitle.size(), Toast.LENGTH_SHORT).show();
-                         /*for(int i = 0; i < listPendingTitle.size(); i++) {
-                              Toast.makeText(CalendarActivity.this, "listPendingTitle " + i + "=" + listPendingTitle.get(i), Toast.LENGTH_SHORT).show();
-                         }*/
-
                          status = "Pending";
-                         Intent intent = new Intent(CalendarActivity.this, RequestedEventsActivity.class);
+                         Intent intent = new Intent(CalendarActivity.this, EventsActivity.class);
 
                          intent.putExtra("status", status);
                          intent.putStringArrayListExtra("date", (ArrayList<String>) listPendingDate);
@@ -331,15 +264,8 @@ public class CalendarActivity extends AppCompatActivity {
                          intent.putStringArrayListExtra("subject", (ArrayList<String>) listPendingSubject);
                          intent.putStringArrayListExtra("time", (ArrayList<String>) listPendingTime);
                          intent.putStringArrayListExtra("description", (ArrayList<String>) listPendingDescription);
-                         //Toast.makeText(CalendarActivity.this, "listPendingTitle.size() " + "=" + listPendingTitle.size(), Toast.LENGTH_SHORT).show();
-
-                         //Toast.makeText(CalendarActivity.this, "listPendingDate.size() " + "=" + listPendingDate.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingTitle.size() " + "=" + listPendingTitle.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingProf.size() " + "=" + listPendingProf.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingSubject.size() " + "=" + listPendingSubject.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingTime.size() " + "=" + listPendingTime.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingDescription.size() " + "=" + listPendingDescription.size(), Toast.LENGTH_SHORT).show();
-                         startActivity(intent); // will navigate to RequestedEventsActivity
+                         startActivity(intent); /* will navigate to RequestedEventsActivity */
+                         status = "";
 
 
                     } else {
@@ -356,92 +282,19 @@ public class CalendarActivity extends AppCompatActivity {
           rejectedImageButton.setOnClickListener(new View.OnClickListener() {
                @Override
                public void onClick(View view) {
-                    // use EventsActivity.java and activity_events.xml
-                    // pass the title, prof, subject, time, and description to EventsActivity
-                    // then use activity_events.xml as layout
-                    String str;
-                    //Toast.makeText(CalendarActivity.this, "1 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).show();
+
                     if (syncButtonFlag == 1) {
-                         //Toast.makeText(CalendarActivity.this, "2 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).show();
                          if (parsingRequestFlag == 0) {
 
-
-                              listPendingTitle.clear();
-                              listPendingDate.clear();
-                              listPendingTime.clear();
-                              listPendingProf.clear();
-                              listPendingSubject.clear();
-                              listPendingDescription.clear();
-
-                              listRejectedTitle.clear();
-                              listRejectedDate.clear();
-                              listRejectedTime.clear();
-                              listRejectedProf.clear();
-                              listRejectedSubject.clear();
-                              listRejectedDescription.clear();
-
-                              listAcceptedTitle.clear();
-                              listAcceptedDate.clear();
-                              listAcceptedTime.clear();
-                              listAcceptedProf.clear();
-                              listAcceptedSubject.clear();
-                              listAcceptedDescription.clear();
-
-
                               parserForRequests =  new MyParserForRequests(CalendarActivity.this);
-                              //Toast.makeText(CalendarActivity.this, "3 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).show();
-
                               parserForRequests.execute();
 
-                              // Process the user's requests to be displayed
-                              // if nakaset na si requestFlag = 1 di na magdownload and parse, process na lang
-                              //String str;
-                              Toast.makeText(CalendarActivity.this, "4 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).cancel();
-
-                              for (int i = 0; i < listRequestStatus.size(); i++) {
-                                   //Toast.makeText(CalendarActivity.this, "I GO HEREEEEEEEEEE", Toast.LENGTH_SHORT).show();
-
-                                   str = listRequestStatus.get(i);
-                                   if(str.equals("pending")) {
-                                        //Toast.makeText(CalendarActivity.this, "str.equals pending", Toast.LENGTH_SHORT).show();
-
-                                        listPendingTitle.add(listRequestTitle.get(i));
-                                        listPendingDate.add(listRequestDate.get(i));
-                                        listPendingTime.add(listRequestTime.get(i));
-                                        listPendingProf.add(listRequestProf.get(i));
-                                        listPendingSubject.add(listRequestSubject.get(i));
-                                        listPendingDescription.add(listRequestDescription.get(i));
-
-                                   } else if(str.equals("rejected")) {
-
-                                        listRejectedTitle.add(listRequestTitle.get(i));
-                                        listRejectedDate.add(listRequestDate.get(i));
-                                        listRejectedTime.add(listRequestTime.get(i));
-                                        listRejectedProf.add(listRequestProf.get(i));
-                                        listRejectedSubject.add(listRequestSubject.get(i));
-                                        listRejectedDescription.add(listRequestDescription.get(i));
-
-                                   } else if(str.equals("accepted")) {
-
-                                        listAcceptedTitle.add(listRequestTitle.get(i));
-                                        listAcceptedDate.add(listRequestDate.get(i));
-                                        listAcceptedTime.add(listRequestTime.get(i));
-                                        listAcceptedProf.add(listRequestProf.get(i));
-                                        listAcceptedSubject.add(listRequestSubject.get(i));
-                                        listAcceptedDescription.add(listRequestDescription.get(i));
-
-                                   }
-                              }
+                              //Toast.makeText(CalendarActivity.this, "4 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).cancel();
                               parsingRequestFlag = 1;
                          }
 
-                         //Toast.makeText(CalendarActivity.this, "listPendingTitle.size() " + "=" + listPendingTitle.size(), Toast.LENGTH_SHORT).show();
-                         /*for(int i = 0; i < listPendingTitle.size(); i++) {
-                              Toast.makeText(CalendarActivity.this, "listPendingTitle " + i + "=" + listPendingTitle.get(i), Toast.LENGTH_SHORT).show();
-                         }*/
-
                          status = "Rejected";
-                         Intent intent = new Intent(CalendarActivity.this, RequestedEventsActivity.class);
+                         Intent intent = new Intent(CalendarActivity.this, EventsActivity.class);
 
                          intent.putExtra("status", status);
                          intent.putStringArrayListExtra("date", (ArrayList<String>) listRejectedDate);
@@ -450,16 +303,8 @@ public class CalendarActivity extends AppCompatActivity {
                          intent.putStringArrayListExtra("subject", (ArrayList<String>) listRejectedSubject);
                          intent.putStringArrayListExtra("time", (ArrayList<String>) listRejectedTime);
                          intent.putStringArrayListExtra("description", (ArrayList<String>) listRejectedDescription);
-                         //Toast.makeText(CalendarActivity.this, "listPendingTitle.size() " + "=" + listPendingTitle.size(), Toast.LENGTH_SHORT).show();
-
-                         //Toast.makeText(CalendarActivity.this, "listPendingDate.size() " + "=" + listPendingDate.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingTitle.size() " + "=" + listPendingTitle.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingProf.size() " + "=" + listPendingProf.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingSubject.size() " + "=" + listPendingSubject.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingTime.size() " + "=" + listPendingTime.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingDescription.size() " + "=" + listPendingDescription.size(), Toast.LENGTH_SHORT).show();
-                         startActivity(intent); // will navigate to RequestedEventsActivity
-
+                         startActivity(intent); /* will navigate to EventsActivity */
+                         status = "";
 
                     } else {
                          Toast.makeText(CalendarActivity.this, "Press SYNC First", Toast.LENGTH_SHORT).show();
@@ -471,120 +316,7 @@ public class CalendarActivity extends AppCompatActivity {
 
 
 
-          acceptedImageButton.setOnClickListener(new View.OnClickListener() {
-               @Override
-               public void onClick(View view) {
-                    // use EventsActivity.java and activity_events.xml
-                    // pass the title, prof, subject, time, and description to EventsActivity
-                    // then use activity_events.xml as layout
-                    String str;
-                    //Toast.makeText(CalendarActivity.this, "1 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).show();
-                    if (syncButtonFlag == 1) {
-                         //Toast.makeText(CalendarActivity.this, "2 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).show();
-                         if (parsingRequestFlag == 0) {
 
-
-                              listPendingTitle.clear();
-                              listPendingDate.clear();
-                              listPendingTime.clear();
-                              listPendingProf.clear();
-                              listPendingSubject.clear();
-                              listPendingDescription.clear();
-
-                              listRejectedTitle.clear();
-                              listRejectedDate.clear();
-                              listRejectedTime.clear();
-                              listRejectedProf.clear();
-                              listRejectedSubject.clear();
-                              listRejectedDescription.clear();
-
-                              listAcceptedTitle.clear();
-                              listAcceptedDate.clear();
-                              listAcceptedTime.clear();
-                              listAcceptedProf.clear();
-                              listAcceptedSubject.clear();
-                              listAcceptedDescription.clear();
-
-
-                              parserForRequests =  new MyParserForRequests(CalendarActivity.this);
-                              //Toast.makeText(CalendarActivity.this, "3 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).show();
-
-                              parserForRequests.execute();
-
-                              // Process the user's requests to be displayed
-                              // if nakaset na si requestFlag = 1 di na magdownload and parse, process na lang
-                              //String str;
-                              Toast.makeText(CalendarActivity.this, "4 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).cancel();
-
-                              for (int i = 0; i < listRequestStatus.size(); i++) {
-                                   //Toast.makeText(CalendarActivity.this, "I GO HEREEEEEEEEEE", Toast.LENGTH_SHORT).show();
-
-                                   str = listRequestStatus.get(i);
-                                   if(str.equals("pending")) {
-                                        //Toast.makeText(CalendarActivity.this, "str.equals pending", Toast.LENGTH_SHORT).show();
-
-                                        listPendingTitle.add(listRequestTitle.get(i));
-                                        listPendingDate.add(listRequestDate.get(i));
-                                        listPendingTime.add(listRequestTime.get(i));
-                                        listPendingProf.add(listRequestProf.get(i));
-                                        listPendingSubject.add(listRequestSubject.get(i));
-                                        listPendingDescription.add(listRequestDescription.get(i));
-
-                                   } else if(str.equals("rejected")) {
-
-                                        listRejectedTitle.add(listRequestTitle.get(i));
-                                        listRejectedDate.add(listRequestDate.get(i));
-                                        listRejectedTime.add(listRequestTime.get(i));
-                                        listRejectedProf.add(listRequestProf.get(i));
-                                        listRejectedSubject.add(listRequestSubject.get(i));
-                                        listRejectedDescription.add(listRequestDescription.get(i));
-
-                                   } else if(str.equals("accepted")) {
-
-                                        listAcceptedTitle.add(listRequestTitle.get(i));
-                                        listAcceptedDate.add(listRequestDate.get(i));
-                                        listAcceptedTime.add(listRequestTime.get(i));
-                                        listAcceptedProf.add(listRequestProf.get(i));
-                                        listAcceptedSubject.add(listRequestSubject.get(i));
-                                        listAcceptedDescription.add(listRequestDescription.get(i));
-
-                                   }
-                              }
-                              parsingRequestFlag = 1;
-                         }
-
-                         //Toast.makeText(CalendarActivity.this, "listPendingTitle.size() " + "=" + listPendingTitle.size(), Toast.LENGTH_SHORT).show();
-                         /*for(int i = 0; i < listPendingTitle.size(); i++) {
-                              Toast.makeText(CalendarActivity.this, "listPendingTitle " + i + "=" + listPendingTitle.get(i), Toast.LENGTH_SHORT).show();
-                         }*/
-
-                         status = "Accepted Requests";
-                         Intent intent = new Intent(CalendarActivity.this, RequestedEventsActivity.class);
-
-                         intent.putExtra("status", status);
-                         intent.putStringArrayListExtra("date", (ArrayList<String>) listAcceptedDate);
-                         intent.putStringArrayListExtra("title", (ArrayList<String>) listAcceptedTitle);
-                         intent.putStringArrayListExtra("prof", (ArrayList<String>) listAcceptedProf);
-                         intent.putStringArrayListExtra("subject", (ArrayList<String>) listAcceptedSubject);
-                         intent.putStringArrayListExtra("time", (ArrayList<String>) listAcceptedTime);
-                         intent.putStringArrayListExtra("description", (ArrayList<String>) listAcceptedDescription);
-                         //Toast.makeText(CalendarActivity.this, "listPendingTitle.size() " + "=" + listPendingTitle.size(), Toast.LENGTH_SHORT).show();
-
-                         //Toast.makeText(CalendarActivity.this, "listPendingDate.size() " + "=" + listPendingDate.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingTitle.size() " + "=" + listPendingTitle.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingProf.size() " + "=" + listPendingProf.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingSubject.size() " + "=" + listPendingSubject.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingTime.size() " + "=" + listPendingTime.size(), Toast.LENGTH_SHORT).show();
-                         //Toast.makeText(CalendarActivity.this, "listPendingDescription.size() " + "=" + listPendingDescription.size(), Toast.LENGTH_SHORT).show();
-                         startActivity(intent); // will navigate to RequestedEventsActivity
-
-
-                    } else {
-                         Toast.makeText(CalendarActivity.this, "Press SYNC First", Toast.LENGTH_SHORT).show();
-                    }
-
-               }
-          });
 
 
 
@@ -598,12 +330,11 @@ public class CalendarActivity extends AppCompatActivity {
           compactCalendarView.setListener(new CompactCalendarView.CompactCalendarViewListener() {
                @Override
                public void onDayClick(Date dateClicked) {
-                   // Toast.makeText(CalendarActivity.this, "syncButtonFlag= " + syncButtonFlag + " parsingFlag= " + parsingFlag, Toast.LENGTH_SHORT).show();
 
                     if (InternetConnection.checkConnection(CalendarActivity.this)) {
                          Context context = getApplicationContext();
 
-                         // Convert dateClicked into String then into the form mm/dd/yy
+                         /* Convert dateClicked into String then into the form mm/dd/yy */
                          String dateClickedSegments[], month, day, year;
                          dateClickedSegments = dateClicked.toString().split(" ");
                          month = dateClickedSegments[1];
@@ -646,7 +377,6 @@ public class CalendarActivity extends AppCompatActivity {
                          listDescriptionsOfDateClicked.clear();
 
 
-                         //Toast.makeText(CalendarActivity.this, "", Toast.LENGTH_SHORT).show();
 
                          if(syncButtonFlag==1) {
                               if(parsingFlag==0) {
@@ -657,27 +387,20 @@ public class CalendarActivity extends AppCompatActivity {
                                    Toast.makeText(context, "listDate size: " + listDate.size(), Toast.LENGTH_SHORT).cancel();
                                    listDateSize = listDate.size();
                                    compactCalendarView.removeAllEvents();
-                                   String str;
 
                                    for(int j = 0; j < listDateSize; j++) {
-                                       // Toast.makeText(CalendarActivity.this, "HEY IM HEREEEEE", Toast.LENGTH_SHORT).show();
+                                       /* Toast.makeText(CalendarActivity.this, "HEY IM HEREEEEE", Toast.LENGTH_SHORT).show();
+                                          segments = ["1487428000000", "2/28/2018"] */
 
-                                        // segments = ["1487428000000", "2/28/2018"]
                                         segments = listDate.get(j).split(" ");
                                         listDateInMilli.add(Long.parseLong(segments[0]));
                                         listDate.set(j, segments[1]);
-                                        // hightlight part
+                                        /* hightlight part */
                                         event = new Event(Color.BLUE, listDateInMilli.get(j));
                                         compactCalendarView.addEvent(event);
-                                        //Toast.makeText(CalendarActivity.this, "After parsing and splitting:\n" + listDate.get(j), Toast.LENGTH_SHORT).show();
 
                                    }
                                    parsingFlag = 1;
-
-
-                                   //since listDateSize == listStatus.size
-
-
 
                               }
 
@@ -688,25 +411,14 @@ public class CalendarActivity extends AppCompatActivity {
 
 
 
-                         // Need to separate Milliseconds from string date first
-                         // after parsing (so may laman na yung unang set ng array lists),
-                         // loop through all the dates available then put the Milliseconds part to another array list after converting it from String
+                         /* Need to separate Milliseconds from string date first
+                            after parsing (so may laman na yung unang set ng array lists),
+                            loop through all the dates available then put the Milliseconds part to another array list after converting it from String */
                          String segments[];
                          Event  event;
                          for(int j = 0; j < listDateSize; j++) {
 
-                              // segments = ["1487428000000", "2/28/2018"]
-                              /*segments = listDate.get(j).split(" ");
-                              listDateInMilli.add(Long.parseLong(segments[0]));
-                              listDate.set(j,segments[1]);
-                              // hightlight part
-                              event = new Event(Color.BLUE, listDateInMilli.get(j));
-                              compactCalendarView.addEvent(event);*/
-
-                              //Toast.makeText(CalendarActivity.this, listDate.get(j) + " " + date, Toast.LENGTH_SHORT).show();
                               if((listDate.get(j)).equals(date)) {
-                                  //Toast.makeText(CalendarActivity.this, "flag=1: " + listDate.get(j) + " " + date, Toast.LENGTH_SHORT).show();
-
                                    flag = 1;
                                    listTitlesOfDateClicked.add(listTitle.get(j));
                                    listProfsOfDateClicked.add(listProf.get(j));
@@ -719,16 +431,17 @@ public class CalendarActivity extends AppCompatActivity {
 
 
 
-                         if(flag == 1) {     // if there are events related to the date clicked go to the big ListView
+                         if(flag == 1) {     /* if there are events related to the date clicked go to the big ListView */
                               Intent intent = new Intent(CalendarActivity.this, EventsActivity.class);
-                              intent.putExtra("date", date);          // pass the string date to EventsActivity; then, retrieve the data inside EventsActivity
+                              intent.putExtra("status", status);
+                              intent.putExtra("date", date);          /* pass the string date to EventsActivity; then, retrieve the data inside EventsActivity */
 
                               intent.putStringArrayListExtra("title", (ArrayList<String>) listTitlesOfDateClicked);
                               intent.putStringArrayListExtra("prof", (ArrayList<String>) listProfsOfDateClicked);
                               intent.putStringArrayListExtra("subject", (ArrayList<String>) listSubjectsOfDateClicked);
                               intent.putStringArrayListExtra("time", (ArrayList<String>) listTimesOfDateClicked);
                               intent.putStringArrayListExtra("description", (ArrayList<String>) listDescriptionsOfDateClicked);
-                              startActivity(intent);        // will navigate to EventsActivity
+                              startActivity(intent);        /* will navigate to EventsActivity */
                          } else {
                               Toast.makeText(CalendarActivity.this, "No events", Toast.LENGTH_SHORT).show();
                          }
@@ -942,8 +655,7 @@ public class CalendarActivity extends AppCompatActivity {
 
           @Override
           protected Integer doInBackground(Void... params) {
-
-               return this.parse();     // remember the parse() method returns an integer --> 1 if successful. otherwise, 0
+               return this.parse();     /* remember the parse() method returns an integer --> 1 if successful. otherwise, 0 */
           }
 
           /*
@@ -981,9 +693,9 @@ public class CalendarActivity extends AppCompatActivity {
 
 
                     JSONArray jsonArray = new JSONArray(dataResult);   /* assigned by the constructor above */
-                    JSONObject jsonObject = null;                /* create a JSON obect to hold a single item */
+                    JSONObject jsonObject = null;                      /* create a JSON obect to hold a single item */
 
-                    listTitle.clear();  /* make sure to clear array list so there are no duplications */
+                    listTitle.clear();                                 /* make sure to clear array list so there are no duplications */
                     listDate.clear();
                     listProf.clear();
                     listSubject.clear();
@@ -1005,9 +717,6 @@ public class CalendarActivity extends AppCompatActivity {
                          listTime.add(temp);
                          temp = jsonObject.getString("description");
                          listDescription.add(temp);
-                         //temp = jsonObject.getString("status");
-                         //listStatus.add(temp);
-                         // I still don't know why you can't put it here!!
                          }
                     return 1;      /* if successful */
 
@@ -1025,6 +734,16 @@ public class CalendarActivity extends AppCompatActivity {
 
 
 
+
+     /*
+     * Sub-class Name: DownloaderForRequests
+     * Creation date: 02/04/18
+     * Purpose: Responsible for utilizing the PHP script in order to download
+     *          event details from the database in JSON format. This functions like
+     *          the Downloader() class but this handles the fetching of all requested
+     *          events of the user.
+     * Required Files: fetchrequestedevents_dcscodex.php
+     */
 
      public class DownloaderForRequests extends AsyncTask<Void, Integer, String> {    /* doInBackground, onProgressUpdate, and onPostExecute parameter types */
 
@@ -1049,7 +768,7 @@ public class CalendarActivity extends AppCompatActivity {
 
           @Override
           protected String doInBackground(Void... params) {      /* string here will be passed on onPostExecute() */
-               // json_events_url
+               /* json_events_url */
                String data = downloadData();
                return data;
           }
@@ -1072,11 +791,22 @@ public class CalendarActivity extends AppCompatActivity {
           private String downloadData() {
                /* connect and get the stream of data */
                InputStream inputStream = null;
-               String line = null;      /* store each line/row in this string */
+               String line = null;                     /* store each line/row in this string */
 
                try {
                     URL url = new URL(json_requests_url);
                     HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
+                    httpURLConnection.setRequestMethod("POST");
+                    httpURLConnection.setDoOutput(true);
+                    httpURLConnection.setDoInput(true);
+                    OutputStream outputStream = httpURLConnection.getOutputStream();
+                    BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(outputStream, "UTF-8"));
+                    /* data to be added in the database */
+                    String post_data = URLEncoder.encode("user_id", "UTF-8")+"="+URLEncoder.encode(user_id, "UTF-8");
+                    bufferedWriter.write(post_data);
+                    bufferedWriter.flush();
+                    bufferedWriter.close();
+                    outputStream.close();
                     inputStream = new BufferedInputStream(httpURLConnection.getInputStream());
 
                     BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
@@ -1117,10 +847,11 @@ public class CalendarActivity extends AppCompatActivity {
 
 
      /*
-     * Sub-class Name: MyParser
-     * Creation date: 02/17/18
-     * Purpose: Responsible parsing data in JSON format then listing all the retrieved string values
-     *          in lists
+     * Sub-class Name: MyParserForRequests
+     * Creation date: 02/04/18
+     * Purpose: Responsible for parsing data in JSON format then listing all the retrieved string values
+     *          in lists. The same functionality as the MyParser() function but this handles the parsing
+     *          for the downloaded json format for the requested events of user.
      *
      */
 
@@ -1144,7 +875,7 @@ public class CalendarActivity extends AppCompatActivity {
 
           @Override
           protected Integer doInBackground(Void... params) {
-               return this.parse();     // remember the parse() method returns an integer --> 1 if successful. otherwise, 0
+               return this.parse();     /* remember the parse() method returns an integer --> 1 if successful. otherwise, 0 */
           }
 
           @Override
@@ -1152,7 +883,7 @@ public class CalendarActivity extends AppCompatActivity {
                super.onPostExecute(integer);
 
                if(integer != 1) {
-                    Toast.makeText(ctx, "Unable to parse", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, "Unable to parse requested events", Toast.LENGTH_SHORT).show();
                }
                progressDialog.dismiss();
           }
@@ -1164,41 +895,45 @@ public class CalendarActivity extends AppCompatActivity {
 
 
                     JSONArray jsonArray = new JSONArray(dataResultRequest);   /* assigned by the constructor above */
-                    JSONObject jsonObject = null;                /* create a JSON object to hold a single item */
+                    JSONObject jsonObject = null;                             /* create a JSON object to hold a single item */
 
-                    listRequestTitle.clear();  /* make sure to clear array list so there are no duplications */
-                    listRequestDate.clear();
-                    listRequestProf.clear();
-                    listRequestSubject.clear();
-                    listRequestTime.clear();
-                    listRequestDescription.clear();
-                    listRequestStatus.clear();
 
                     /* loop through the JSON array */
                     for (int i = 0; i < jsonArray.length(); i++) {
                          jsonObject = jsonArray.getJSONObject(i);
-                         temp = jsonObject.getString("title");   /* for each object, get the title of event */
-                         listRequestTitle.add(temp);
-                         temp = jsonObject.getString("date");
-                         listRequestDate.add(temp);
-                         temp = jsonObject.getString("prof");
-                         listRequestProf.add(temp);
-                         temp = jsonObject.getString("subject");
-                         listRequestSubject.add(temp);
-                         temp = jsonObject.getString("time");
-                         listRequestTime.add(temp);
-                         temp = jsonObject.getString("description");
-                         listRequestDescription.add(temp);
+
                          temp = jsonObject.getString("status");
-                         listRequestStatus.add(temp);
+                         if(temp.equals("pending")) {
+                              temp = jsonObject.getString("title");   /* for each object, get the title of event */
+                              listPendingTitle.add(temp);
+                              temp = jsonObject.getString("date");
+                              listPendingDate.add(temp);
+                              temp = jsonObject.getString("prof");
+                              listPendingProf.add(temp);
+                              temp = jsonObject.getString("subject");
+                              listPendingSubject.add(temp);
+                              temp = jsonObject.getString("time");
+                              listPendingTime.add(temp);
+                              temp = jsonObject.getString("description");
+                              listPendingDescription.add(temp);
+
+                         } else if(temp.equals("rejected")) {
+                              temp = jsonObject.getString("title");   /* for each object, get the title of event */
+                              listRejectedTitle.add(temp);
+                              temp = jsonObject.getString("date");
+                              listRejectedDate.add(temp);
+                              temp = jsonObject.getString("prof");
+                              listRejectedProf.add(temp);
+                              temp = jsonObject.getString("subject");
+                              listRejectedSubject.add(temp);
+                              temp = jsonObject.getString("time");
+                              listRejectedTime.add(temp);
+                              temp = jsonObject.getString("description");
+                              listRejectedDescription.add(temp);
+
+                         }
 
                     }
-                    /*runOnUiThread(new Runnable() {
-                         @Override
-                         public void run() {
-                              Toast.makeText(CalendarActivity.this, "listRequestStatus.size() = "+listRequestStatus.size(), Toast.LENGTH_SHORT).show();
-                         }
-                    });*/
                     return 1;      /* if successful */
 
                } catch (JSONException e) {

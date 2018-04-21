@@ -31,9 +31,11 @@ package com.example.dcscodex;
 *                                                           CalendarActivity class. Stored all the events associated with the date clicked
 *                                                           by user.
 *
-* Borja, Kim                    02/21/16                    Added alert dialogs for the details of the event
+* Borja, Kim                    02/21/18                    Added alert dialogs for the details of the event
 *                                                           clicked from the list view
 *
+* Borja, Kim                    04/21/18                    Updated to let this class handle the diplay
+*                                                           of listView of Pending and Rejected events
 *
 */
 
@@ -74,6 +76,9 @@ public class EventsActivity extends AppCompatActivity {
      ArrayList<String> listSubjectsOfDateClicked = new ArrayList<String>();
      ArrayList<String> listTimesOfDateClicked = new ArrayList<String>();
      ArrayList<String> listDescriptionsOfDateClicked = new ArrayList<String>();
+     ArrayList<String> listStatusDate = new ArrayList<String>();
+     String status, date;
+
 
 
      /*
@@ -91,9 +96,18 @@ public class EventsActivity extends AppCompatActivity {
           setContentView(R.layout.activity_events);
 
           textViewDate = (TextView) findViewById(R.id.textViewDate);
-          Intent incomingIntent = getIntent();    // will retrieve any data from an incoming intent
-          String date = incomingIntent.getStringExtra("date");
-          textViewDate.setText(date);
+          Intent incomingIntent = getIntent();    /* will retrieve any data from an incoming intent */
+          status = incomingIntent.getStringExtra("status");
+
+          if(status.equals("Pending") || status.equals("Rejected")) {
+               textViewDate.setText(status);
+               listStatusDate = incomingIntent.getStringArrayListExtra("date");
+          } else {
+               date = incomingIntent.getStringExtra("date");
+               textViewDate.setText(date);
+          }
+
+
 
           listTitlesOfDateClicked = incomingIntent.getStringArrayListExtra("title");
           listProfsOfDateClicked =  incomingIntent.getStringArrayListExtra("prof");
@@ -109,13 +123,13 @@ public class EventsActivity extends AppCompatActivity {
           listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                @Override
                public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-                    // where alert dialog pops out
+                    /* where alert dialog pops out */
                     /* pop out window later */
                     String details = "EVENT:\t" + listTitlesOfDateClicked.get(position) + "\n"
-                                   + "PROFESSOR:\t" + listProfsOfDateClicked.get(position) + "\n"
-                                   + "SUBJECT:\t" + listSubjectsOfDateClicked.get(position) + "\n"
-                                   + "TIME:\t" + listTimesOfDateClicked.get(position) + "\n"
-                                   + "DESCRIPTION:\t" + listDescriptionsOfDateClicked.get(position);
+                         + "PROFESSOR:\t" + listProfsOfDateClicked.get(position) + "\n"
+                         + "SUBJECT:\t" + listSubjectsOfDateClicked.get(position) + "\n"
+                         + "TIME:\t" + listTimesOfDateClicked.get(position) + "\n"
+                         + "DESCRIPTION:\t" + listDescriptionsOfDateClicked.get(position);
 
                     String event, professor, subject, time, description;
                     event = "Event:  " + listTitlesOfDateClicked.get(position);
@@ -132,7 +146,12 @@ public class EventsActivity extends AppCompatActivity {
                     TextView subjectTextView = (TextView) mView.findViewById(R.id.subjectTextView);
                     TextView timeTextView = (TextView) mView.findViewById(R.id.timeTextView);
                     TextView descriptionTextView = (TextView) mView.findViewById(R.id.descriptionTextView);
+                    TextView miniBackgroundHeader = (TextView) mView.findViewById(R.id.miniBackgroundHeader);
 
+
+                    if(status.equals("Pending") || status.equals("Rejected")) {
+                         miniBackgroundHeader.setText("Date: " + listStatusDate.get(position));
+                    }
                     eventTextView.setText(event);
                     profTextView.setText(professor);
                     subjectTextView.setText(subject);
@@ -148,13 +167,7 @@ public class EventsActivity extends AppCompatActivity {
                     alertDialogBuilder.setView(mView);
                     AlertDialog alertDialog = alertDialogBuilder.create();
                     alertDialog.show();
-                    /*alertDialog.setTitle("Details");
-                    alertDialog.setMessage(listTitlesOfDateClicked.get(position) + "\n"
-                              + "Prof: " + listProfsOfDateClicked.get(position) + "\n"
-                              + "Subject: " + listSubjectsOfDateClicked.get(position) + "\n"
-                              + "Time: " + listTimesOfDateClicked.get(position) + "\n"
-                              + "Description: " + listDescriptionsOfDateClicked.get(position));
-                    alertDialog.show();*/
+
                }
           });
 
