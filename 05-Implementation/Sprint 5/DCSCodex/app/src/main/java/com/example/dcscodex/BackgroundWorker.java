@@ -105,7 +105,7 @@ public class BackgroundWorker extends AsyncTask<String,Void,String> {
 
           /* expect the value of the first element which is type="login" */
           String type = params[0];                                                    /* catches the constant string flag for login passed as the first parameter to BackgroundWorker */
-          String localhost = "http://192.168.254.112/";
+          String localhost = "http://dcscodex.000webhostapp.com/scripts_dcscodex/";
           String login_url = localhost + "login_dcscodex.php";             /* variable for the PHP script location used for login (database connection) */
           String register_url = localhost + "register_dcscodex.php";       /* variable for the PHP script location used for registration (database connection) */
           String request_url = localhost + "requestevent_dcscodex.php";

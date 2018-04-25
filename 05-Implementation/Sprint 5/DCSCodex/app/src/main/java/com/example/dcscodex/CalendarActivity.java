@@ -97,13 +97,15 @@ public class CalendarActivity extends AppCompatActivity {
      CompactCalendarView compactCalendarView;
      private SimpleDateFormat dateFormatMonth = new SimpleDateFormat("MMMM-yyyy", Locale.getDefault());
      int syncButtonFlag = 0, parsingFlag = 0, parsingRequestFlag = 0, listDateSize = 0; /* reqeustsFlag indicates if one of the view requests button has been clicked */
-     String localhost = "http://192.168.254.112/";                     /* must always be checked and replaced by the current IP address */
+     String localhost = "http://dcscodex.000webhostapp.com/scripts_dcscodex/";                     /* must always be checked and replaced by the current IP address */
      String json_events_url = localhost + "fetchevents_dcscodex.php";
-     String json_requests_url = localhost + "fetchrequestedevents_dcscodex.php";
+     String json_pendingrequests_url = localhost + "fetchpendingevents_dcscodex.php";
+     String json_rejectedrequests_url = localhost + "fetchrejectedevents_dcscodex.php";
+
+     String data;
      String date = null;
-     String dataResult = null, dataResultRequest = null;
-     MyParser parser;
-     MyParserForRequests parserForRequests;
+     String dataResult = "", dataResultPendingRequest = null, dataResultRejectedRequest = null;
+
      String user_id, status = "";
      TextView monthYear;
      ImageButton pendingImageButton, rejectedImageButton, acceptedImageButton;
@@ -194,12 +196,16 @@ public class CalendarActivity extends AppCompatActivity {
                public void onClick(View view) {
 
                     if (InternetConnection.checkConnection(CalendarActivity.this)) {
-                         final ListView listView = (ListView) findViewById(R.id.listView);
                          final Downloader downloader = new Downloader(CalendarActivity.this);
                          downloader.execute();
-                         final DownloaderForRequests downloaderRequests = new DownloaderForRequests(CalendarActivity.this);
-                         downloaderRequests.execute(); /* for downloading the requested events from the database */
+                         final DownloaderForPendingRequests downloaderPendingRequests = new DownloaderForPendingRequests(CalendarActivity.this);
+                         downloaderPendingRequests.execute(); /* for downloading the requested events from the database */
+                         final DownloaderForRejectedRequests downloaderRejectedRequests = new DownloaderForRejectedRequests(CalendarActivity.this);
+                         downloaderRejectedRequests.execute(); /* for downloading the requested events from the database */
+
                          syncButtonFlag = 1;
+                         Toast.makeText(CalendarActivity.this, "Sync successful", Toast.LENGTH_SHORT).show();    /* this is the cut for the downloading part. now we go on to parsing */
+
                          parsingFlag = 0;
                          parsingRequestFlag = 0;
 
@@ -245,15 +251,6 @@ public class CalendarActivity extends AppCompatActivity {
                public void onClick(View view) {
 
                     if (syncButtonFlag == 1) {
-                         if (parsingRequestFlag == 0) {
-
-                              parserForRequests =  new MyParserForRequests(CalendarActivity.this);
-                              parserForRequests.execute();
-
-                              //Toast.makeText(CalendarActivity.this, "4 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).cancel();
-                              parsingRequestFlag = 1;
-                         }
-
                          status = "Pending";
                          Intent intent = new Intent(CalendarActivity.this, EventsActivity.class);
 
@@ -266,7 +263,6 @@ public class CalendarActivity extends AppCompatActivity {
                          intent.putStringArrayListExtra("description", (ArrayList<String>) listPendingDescription);
                          startActivity(intent); /* will navigate to RequestedEventsActivity */
                          status = "";
-
 
                     } else {
                          Toast.makeText(CalendarActivity.this, "Press SYNC First", Toast.LENGTH_SHORT).show();
@@ -284,15 +280,6 @@ public class CalendarActivity extends AppCompatActivity {
                public void onClick(View view) {
 
                     if (syncButtonFlag == 1) {
-                         if (parsingRequestFlag == 0) {
-
-                              parserForRequests =  new MyParserForRequests(CalendarActivity.this);
-                              parserForRequests.execute();
-
-                              //Toast.makeText(CalendarActivity.this, "4 listRequestStatus.size() " + "=" + listRequestStatus.size(), Toast.LENGTH_SHORT).cancel();
-                              parsingRequestFlag = 1;
-                         }
-
                          status = "Rejected";
                          Intent intent = new Intent(CalendarActivity.this, EventsActivity.class);
 
@@ -378,33 +365,8 @@ public class CalendarActivity extends AppCompatActivity {
 
 
 
-                         if(syncButtonFlag==1) {
-                              if(parsingFlag==0) {
-                                   parser = new MyParser(CalendarActivity.this);       // call parser
-                                   parser.execute();
-                                   String segments[];
-                                   Event  event;
-                                   Toast.makeText(context, "listDate size: " + listDate.size(), Toast.LENGTH_SHORT).cancel();
-                                   listDateSize = listDate.size();
-                                   compactCalendarView.removeAllEvents();
 
-                                   for(int j = 0; j < listDateSize; j++) {
-                                       /* Toast.makeText(CalendarActivity.this, "HEY IM HEREEEEE", Toast.LENGTH_SHORT).show();
-                                          segments = ["1487428000000", "2/28/2018"] */
-
-                                        segments = listDate.get(j).split(" ");
-                                        listDateInMilli.add(Long.parseLong(segments[0]));
-                                        listDate.set(j, segments[1]);
-                                        /* hightlight part */
-                                        event = new Event(Color.BLUE, listDateInMilli.get(j));
-                                        compactCalendarView.addEvent(event);
-
-                                   }
-                                   parsingFlag = 1;
-
-                              }
-
-                         } else {
+                         if (syncButtonFlag!=1) {
                               Toast.makeText(CalendarActivity.this, "Press SYNC First", Toast.LENGTH_SHORT).show();
                          }
 
@@ -542,9 +504,8 @@ public class CalendarActivity extends AppCompatActivity {
                /* before parsing, make sure that data not null */
                if (result != null) {
                     /* pass data */
-
-                    Toast.makeText(ctx, "Sync successful", Toast.LENGTH_SHORT).show();    /* this is the cut for the downloading part. now we go on to parsing */
                     dataResult = result;
+                    parse();
                } else {
                     Toast.makeText(ctx, "Unable to download data", Toast.LENGTH_SHORT).show();
                }
@@ -602,6 +563,73 @@ public class CalendarActivity extends AppCompatActivity {
 
 
 
+     /*
+     * Method Name: parse
+     * Creation date: 02/17/18
+     * Purpose: Responsible for parsing the accepted/calendar events in JSON format then listing all the retrieved string values
+     *          in lists
+     *
+     */
+
+     public void parse() {    /* will tell if parsing has been successful */
+          try {
+                    /* JSONArray contains many data--> JSON objects */
+               String temp;
+
+
+               JSONArray jsonArray = new JSONArray(dataResult);   /* assigned by the constructor above */
+               JSONObject jsonObject = null;                      /* create a JSON obect to hold a single item */
+
+               listTitle.clear();                                 /* make sure to clear array list so there are no duplications */
+               listDate.clear();
+               listProf.clear();
+               listSubject.clear();
+               listTime.clear();
+               listDescription.clear();
+
+                    /* loop through the JSON array */
+               for (int i = 0; i < jsonArray.length(); i++) {
+                    jsonObject = jsonArray.getJSONObject(i);
+                    temp = jsonObject.getString("title");   /* for each object, get the title of event */
+                    listTitle.add(temp);
+                    temp = jsonObject.getString("date");
+                    listDate.add(temp);
+                    temp = jsonObject.getString("prof");
+                    listProf.add(temp);
+                    temp = jsonObject.getString("subject");
+                    listSubject.add(temp);
+                    temp = jsonObject.getString("time");
+                    listTime.add(temp);
+                    temp = jsonObject.getString("description");
+                    listDescription.add(temp);
+               }
+
+
+               String segments[];
+               Event  event;
+               Toast.makeText(CalendarActivity.this, "listDate size: " + listDate.size(), Toast.LENGTH_SHORT).cancel();
+               listDateSize = listDate.size();
+               compactCalendarView.removeAllEvents();
+
+               for(int j = 0; j < listDateSize; j++) {
+                                       /* Toast.makeText(CalendarActivity.this, "HEY IM HEREEEEE", Toast.LENGTH_SHORT).show();
+                                          segments = ["1487428000000", "2/28/2018"] */
+
+                    segments = listDate.get(j).split(" ");
+                    listDateInMilli.add(Long.parseLong(segments[0]));
+                    listDate.set(j, segments[1]);
+                                        /* hightlight part */
+                    event = new Event(Color.BLUE, listDateInMilli.get(j));
+                    compactCalendarView.addEvent(event);
+
+               }
+
+
+          } catch (JSONException e) {
+               e.printStackTrace();
+          }
+
+     }
 
 
 
@@ -610,123 +638,155 @@ public class CalendarActivity extends AppCompatActivity {
 
 
      /*
-     * Sub-class Name: MyParser
-     * Creation date: 02/17/18
-     * Purpose: Responsible parsing data in JSON format then listing all the retrieved string values
-     *          in lists
-     *
+     * Sub-class Name: DownloaderForRequests
+     * Creation date: 02/04/18
+     * Purpose: Responsible for utilizing the PHP script in order to download
+     *          event details from the database in JSON format. This functions like
+     *          the Downloader() class but this handles the fetching of all requested
+     *          events of the user.
+     * Required Files: fetchrequestedevents_dcscodex.php
      */
 
-     public class MyParser extends AsyncTask<Void, Integer, Integer> {
+     public class DownloaderForPendingRequests extends AsyncTask<Void, Integer, String> {    /* doInBackground, onProgressUpdate, and onPostExecute parameter types */
 
           Context ctx;
+
+
           ProgressDialog progressDialog;
 
-
-          public MyParser(Context ctx) {
+          public DownloaderForPendingRequests(Context ctx) {
                this.ctx = ctx;
           }
-
-
-
-          /*
-          * Method Name: onPreExecute
-          * Creation date: 02/17/18
-          * Purpose: Informs user that parsing is taking place
-          * Return value: None
-          */
 
           @Override
           protected void onPreExecute() {
                super.onPreExecute();
+
                progressDialog = new ProgressDialog(ctx);
-               progressDialog.setTitle("Parser");
-               progressDialog.setMessage("Please wait...");
+               progressDialog.setTitle("Status");
+               progressDialog.setMessage("Fetching data... Please wait");
                progressDialog.show();
           }
 
-
-          /*
-          * Method Name: doInBackground
-          * Creation date: 02/17/18
-          * Purpose: Calling the parse method
-          * Return value: this.parse()- an integer
-          */
-
           @Override
-          protected Integer doInBackground(Void... params) {
-               return this.parse();     /* remember the parse() method returns an integer --> 1 if successful. otherwise, 0 */
+          protected String doInBackground(Void... params) {      /* string here will be passed on onPostExecute() */
+               /* json_events_url */
+               data = downloadData();
+               return data;
           }
 
-          /*
-          * Method Name: onPostExecute
-          * Creation date: 02/17/18
-          * Purpose: For dismissing the process dialog initialized earlier
-          *          and informing the user if parse is unsuccessful
-          * Return value: this.parse()- an integer
-          */
-
           @Override
-          protected void onPostExecute(Integer integer) {
-               super.onPostExecute(integer);
-
-               if(integer != 1) {
-                    Toast.makeText(ctx, "Unable to parse", Toast.LENGTH_SHORT).show();
-               }
+          protected void onPostExecute(String result) {     /* string from doInBackground */
+               super.onPostExecute(result);
                progressDialog.dismiss();
+
+               /* before parsing, make sure that data not null */
+               if (result != null) {
+                    /* pass data */
+                    dataResultPendingRequest = result;
+                    parsePendingRequests();
+               } else {
+                    Toast.makeText(ctx, "Unable to download data", Toast.LENGTH_SHORT).show();
+               }
           }
 
+          private String downloadData() {
+               /* connect and get the stream of data */
+               InputStream inputStream = null;
+               String line = null;                     /* store each line/row in this string */
 
-
-
-          /*
-          * Method Name: parse
-          * Creation date: 02/17/18
-          * Purpose: Where actual parsing occurs
-          * Return value: 1/0- an integer
-          */
-
-          private int parse() {    /* will tell if parsing has been successful */
                try {
-                    /* JSONArray contains many data--> JSON objects */
-                    String temp;
+                    URL url = new URL(json_pendingrequests_url);
+                    HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
+                    httpURLConnection.setRequestMethod("POST");
+                    httpURLConnection.setDoOutput(true);
+                    httpURLConnection.setDoInput(true);
+                    OutputStream outputStream = httpURLConnection.getOutputStream();
+                    BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(outputStream, "UTF-8"));
+                    /* data to be added in the database */
+                    String post_data = URLEncoder.encode("user_id", "UTF-8")+"="+URLEncoder.encode(user_id, "UTF-8");
+                    bufferedWriter.write(post_data);
+                    bufferedWriter.flush();
+                    bufferedWriter.close();
+                    outputStream.close();
+                    inputStream = new BufferedInputStream(httpURLConnection.getInputStream());
 
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+                    StringBuffer stringBuffer = new StringBuffer();
 
-                    JSONArray jsonArray = new JSONArray(dataResult);   /* assigned by the constructor above */
-                    JSONObject jsonObject = null;                      /* create a JSON obect to hold a single item */
-
-                    listTitle.clear();                                 /* make sure to clear array list so there are no duplications */
-                    listDate.clear();
-                    listProf.clear();
-                    listSubject.clear();
-                    listTime.clear();
-                    listDescription.clear();
-
-                    /* loop through the JSON array */
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                         jsonObject = jsonArray.getJSONObject(i);
-                         temp = jsonObject.getString("title");   /* for each object, get the title of event */
-                         listTitle.add(temp);
-                         temp = jsonObject.getString("date");
-                         listDate.add(temp);
-                         temp = jsonObject.getString("prof");
-                         listProf.add(temp);
-                         temp = jsonObject.getString("subject");
-                         listSubject.add(temp);
-                         temp = jsonObject.getString("time");
-                         listTime.add(temp);
-                         temp = jsonObject.getString("description");
-                         listDescription.add(temp);
+                    if (bufferedReader != null) {
+                         while ((line = bufferedReader.readLine()) != null) {
+                              stringBuffer.append(line+"\n");
                          }
-                    return 1;      /* if successful */
+                    } else {
+                         return  null;
+                    }
+                    return stringBuffer.toString();
 
-               } catch (JSONException e) {
+               } catch (MalformedURLException e) {
                     e.printStackTrace();
+               } catch (IOException e) {
+                    e.printStackTrace();
+               } finally {
+                    /* check if inputStream is not null; for java version 6 and below */
+                    if (inputStream != null) {
+                         try {
+                              inputStream.close();
+                         } catch (IOException e) {
+                              e.printStackTrace();
+                         }
+                    }
                }
-               return 0;
+               return null;
           }
      }
 
+
+
+
+
+     /*
+     * Method Name: parsePendingRequests
+     * Creation date: 02/04/18
+     * Purpose: Responsible for parsing data in JSON format then listing all the retrieved string values
+     *          in lists. The same functionality as the parse() function but this handles the parsing
+     *          for the downloaded json format for the requested events of user.
+     *
+     */
+
+     public void parsePendingRequests() {    /* will tell if parsing has been successful */
+          try {
+               /* JSONArray contains many data--> JSON objects */
+               String temp;
+
+
+               JSONArray jsonArray = new JSONArray(dataResultPendingRequest);   /* assigned by the constructor above */
+               JSONObject jsonObject = null;                             /* create a JSON object to hold a single item */
+
+
+                    /* loop through the JSON array */
+               for (int i = 0; i < jsonArray.length(); i++) {
+                    jsonObject = jsonArray.getJSONObject(i);
+
+                    temp = jsonObject.getString("title");   /* for each object, get the title of event */
+                    listPendingTitle.add(temp);
+                    temp = jsonObject.getString("date");
+                    listPendingDate.add(temp);
+                    temp = jsonObject.getString("prof");
+                    listPendingProf.add(temp);
+                    temp = jsonObject.getString("subject");
+                    listPendingSubject.add(temp);
+                    temp = jsonObject.getString("time");
+                    listPendingTime.add(temp);
+                    temp = jsonObject.getString("description");
+                    listPendingDescription.add(temp);
+
+               }
+
+          } catch (JSONException e) {
+               e.printStackTrace();
+          }
+     }
 
 
 
@@ -745,14 +805,14 @@ public class CalendarActivity extends AppCompatActivity {
      * Required Files: fetchrequestedevents_dcscodex.php
      */
 
-     public class DownloaderForRequests extends AsyncTask<Void, Integer, String> {    /* doInBackground, onProgressUpdate, and onPostExecute parameter types */
+     public class DownloaderForRejectedRequests extends AsyncTask<Void, Integer, String> {    /* doInBackground, onProgressUpdate, and onPostExecute parameter types */
 
           Context ctx;
 
 
           ProgressDialog progressDialog;
 
-          public DownloaderForRequests(Context ctx) {
+          public DownloaderForRejectedRequests(Context ctx) {
                this.ctx = ctx;
           }
 
@@ -769,7 +829,7 @@ public class CalendarActivity extends AppCompatActivity {
           @Override
           protected String doInBackground(Void... params) {      /* string here will be passed on onPostExecute() */
                /* json_events_url */
-               String data = downloadData();
+               data = downloadData();
                return data;
           }
 
@@ -781,8 +841,8 @@ public class CalendarActivity extends AppCompatActivity {
                /* before parsing, make sure that data not null */
                if (result != null) {
                     /* pass data */
-                    Toast.makeText(ctx, "Sync successful", Toast.LENGTH_SHORT).show();    /* this is the cut for the downloading part. now we go on to parsing */
-                    dataResultRequest = result;
+                    dataResultRejectedRequest = result;
+                    parseRejectedEvents();
                } else {
                     Toast.makeText(ctx, "Unable to download data", Toast.LENGTH_SHORT).show();
                }
@@ -794,7 +854,7 @@ public class CalendarActivity extends AppCompatActivity {
                String line = null;                     /* store each line/row in this string */
 
                try {
-                    URL url = new URL(json_requests_url);
+                    URL url = new URL(json_rejectedrequests_url);
                     HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
                     httpURLConnection.setRequestMethod("POST");
                     httpURLConnection.setDoOutput(true);
@@ -845,107 +905,48 @@ public class CalendarActivity extends AppCompatActivity {
 
 
 
-
      /*
-     * Sub-class Name: MyParserForRequests
+     * Method Name: parseRejectedEvents
      * Creation date: 02/04/18
      * Purpose: Responsible for parsing data in JSON format then listing all the retrieved string values
-     *          in lists. The same functionality as the MyParser() function but this handles the parsing
+     *          in lists. The same functionality as the parse() function but this handles the parsing
      *          for the downloaded json format for the requested events of user.
      *
      */
 
-     public class MyParserForRequests extends AsyncTask<Void, Integer, Integer> {
-
-          Context ctx;
-          ProgressDialog progressDialog;
-
-          public MyParserForRequests(Context ctx) {
-               this.ctx = ctx;
-          }
-
-          @Override
-          protected void onPreExecute() {
-               super.onPreExecute();
-               progressDialog = new ProgressDialog(ctx);
-               progressDialog.setTitle("Parser");
-               progressDialog.setMessage("Please wait...");
-               progressDialog.show();
-          }
-
-          @Override
-          protected Integer doInBackground(Void... params) {
-               return this.parse();     /* remember the parse() method returns an integer --> 1 if successful. otherwise, 0 */
-          }
-
-          @Override
-          protected void onPostExecute(Integer integer) {
-               super.onPostExecute(integer);
-
-               if(integer != 1) {
-                    Toast.makeText(ctx, "Unable to parse requested events", Toast.LENGTH_SHORT).show();
-               }
-               progressDialog.dismiss();
-          }
-
-          private int parse() {    /* will tell if parsing has been successful */
-               try {
+     public void parseRejectedEvents() {    /* will tell if parsing has been successful */
+          try {
                     /* JSONArray contains many data--> JSON objects */
-                    String temp;
+               String temp;
 
 
-                    JSONArray jsonArray = new JSONArray(dataResultRequest);   /* assigned by the constructor above */
-                    JSONObject jsonObject = null;                             /* create a JSON object to hold a single item */
+               JSONArray jsonArray = new JSONArray(dataResultRejectedRequest);   /* assigned by the constructor above */
+               JSONObject jsonObject = null;                             /* create a JSON object to hold a single item */
 
 
                     /* loop through the JSON array */
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                         jsonObject = jsonArray.getJSONObject(i);
+               for (int i = 0; i < jsonArray.length(); i++) {
+                    jsonObject = jsonArray.getJSONObject(i);
 
-                         temp = jsonObject.getString("status");
-                         if(temp.equals("pending")) {
-                              temp = jsonObject.getString("title");   /* for each object, get the title of event */
-                              listPendingTitle.add(temp);
-                              temp = jsonObject.getString("date");
-                              listPendingDate.add(temp);
-                              temp = jsonObject.getString("prof");
-                              listPendingProf.add(temp);
-                              temp = jsonObject.getString("subject");
-                              listPendingSubject.add(temp);
-                              temp = jsonObject.getString("time");
-                              listPendingTime.add(temp);
-                              temp = jsonObject.getString("description");
-                              listPendingDescription.add(temp);
+                    temp = jsonObject.getString("title");   /* for each object, get the title of event */
+                    listRejectedTitle.add(temp);
+                    temp = jsonObject.getString("date");
+                    listRejectedDate.add(temp);
+                    temp = jsonObject.getString("prof");
+                    listRejectedProf.add(temp);
+                    temp = jsonObject.getString("subject");
+                    listRejectedSubject.add(temp);
+                    temp = jsonObject.getString("time");
+                    listRejectedTime.add(temp);
+                    temp = jsonObject.getString("description");
+                    listRejectedDescription.add(temp);
 
-                         } else if(temp.equals("rejected")) {
-                              temp = jsonObject.getString("title");   /* for each object, get the title of event */
-                              listRejectedTitle.add(temp);
-                              temp = jsonObject.getString("date");
-                              listRejectedDate.add(temp);
-                              temp = jsonObject.getString("prof");
-                              listRejectedProf.add(temp);
-                              temp = jsonObject.getString("subject");
-                              listRejectedSubject.add(temp);
-                              temp = jsonObject.getString("time");
-                              listRejectedTime.add(temp);
-                              temp = jsonObject.getString("description");
-                              listRejectedDescription.add(temp);
-
-                         }
-
-                    }
-                    return 1;      /* if successful */
-
-               } catch (JSONException e) {
-                    e.printStackTrace();
                }
-               return 0;
+
+          } catch (JSONException e) {
+               e.printStackTrace();
           }
      }
-
-
-
-
 
 
 
