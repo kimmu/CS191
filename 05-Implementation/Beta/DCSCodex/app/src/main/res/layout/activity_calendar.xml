@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+Created by Kim Borja
+This is a course requirement for CS 192 Software Engineering II under the supervision of
+Asst. Prof. Ma. Rowena C. Solamo of the Department of Computer Science, College of Engineering,
+University of the Philippines, Diliman for the AY 2017-2018”.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+
+<!--
+Code History
+
+Name of Programmer            Date changed                Description
+
+Borja, Kim                    02/17/18                    Created UI for calendar page
+
+Borja, Kim                    03/07/18                    Added a floating action button for
+                                                          the request event functionality
+
+Borja, Kim                    04/04/18                    Added Rejected, Pending, and Accepted buttons
+
+Borja, Kim                    04/21/18                    Removed the Accepted button
+
+-->
+
+
+<!--
+File creation date: 02/17/18
+Development group: Group 4
+Client Group: Students
+Purpose: For UI design of calendar page
+-->
+
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     xmlns:app="http://schemas.android.com/apk/res-auto"
+     xmlns:tools="http://schemas.android.com/tools"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+     android:background="@color/colorWhite"
+     tools:context="com.example.dcscodex.CalendarActivity">
+
+
+     <TextView
+          android:id="@+id/miniBackgroundHeader"
+          android:layout_width="146dp"
+          android:layout_height="41dp"
+          android:layout_marginEnd="195dp"
+          android:layout_marginRight="195dp"
+          android:layout_marginStart="38dp"
+          android:layout_marginLeft="38dp"
+          android:layout_marginTop="24dp"
+          android:background="@drawable/shape_request_header"
+          android:fontFamily="@font/simplifica"
+          android:lineSpacingExtra="10sp"
+          android:padding="10sp"
+          android:text="Month-Year"
+          android:textAlignment="center"
+          android:textColor="@color/colorWhite"
+          android:textSize="20sp"
+          android:textStyle="bold"
+          app:layout_constraintEnd_toEndOf="parent"
+          app:layout_constraintHorizontal_bias="0.0"
+          app:layout_constraintStart_toStartOf="parent"
+          app:layout_constraintTop_toTopOf="parent" />
+
+
+     <com.github.sundeepk.compactcalendarview.CompactCalendarView xmlns:app="http://schemas.android.com/apk/res-auto"
+          android:id="@+id/compactCalendarView"
+          android:layout_width="335dp"
+          android:layout_height="250dp"
+          android:layout_marginEnd="25dp"
+          android:layout_marginStart="25dp"
+          android:paddingLeft="10dp"
+          android:paddingRight="10dp"
+          android:paddingTop="20dp"
+          app:compactCalendarBackgroundColor="@color/colorSuperLightBlue"
+          app:compactCalendarCurrentDayBackgroundColor="@color/colorMonteCarlo"
+          app:compactCalendarCurrentSelectedDayBackgroundColor="@color/colorPrimary"
+          app:compactCalendarMultiEventIndicatorColor="#fff"
+          app:compactCalendarTargetHeight="250dp"
+          app:compactCalendarTextColor="#fff"
+          app:compactCalendarTextSize="12sp"
+          app:layout_constraintEnd_toEndOf="parent"
+          app:layout_constraintStart_toStartOf="parent"
+          app:layout_constraintTop_toBottomOf="@+id/miniBackgroundHeader" />
+
+
+     <com.github.clans.fab.FloatingActionMenu
+          android:id="@+id/floatingActionButtonMenu"
+          android:layout_width="156dp"
+          android:layout_height="wrap_content"
+          android:layout_alignParentBottom="true"
+          android:layout_alignParentEnd="true"
+          android:layout_alignParentRight="true"
+          android:layout_marginBottom="16dp"
+          android:layout_marginEnd="16dp"
+          android:layout_marginRight="16dp"
+          android:elevation="2dp"
+          app:backgroundTint="@color/colorPrimary"
+          app:layout_constraintBottom_toBottomOf="parent"
+          app:layout_constraintEnd_toEndOf="parent"
+          app:menu_backgroundColor="@android:color/transparent"
+          app:menu_colorNormal="@color/colorPrimary"
+          app:menu_fab_label=""
+          app:menu_openDirection="up"
+          app:menu_showShadow="true">
+
+
+          <com.github.clans.fab.FloatingActionButton
+               android:id="@+id/floatingActionButtonLogOut"
+               android:layout_width="wrap_content"
+               android:layout_height="wrap_content"
+               android:layout_marginBottom="1dp"
+               android:layout_marginEnd="47dp"
+               android:layout_marginRight="47dp"
+               android:src="@drawable/logout"
+               app:fab_colorNormal="@color/colorDarkerLightBlue"
+               app:fab_label="Log out"
+               app:fab_size="mini"
+               app:layout_constraintBottom_toTopOf="@+id/floatingActionButtonMenu"
+               app:layout_constraintEnd_toEndOf="parent" />
+
+          <com.github.clans.fab.FloatingActionButton
+               android:id="@+id/floatingActionButtonRequest"
+               android:layout_width="wrap_content"
+               android:layout_height="wrap_content"
+               android:layout_marginEnd="47dp"
+               android:layout_marginRight="47dp"
+               android:src="@drawable/request"
+               app:fab_colorNormal="@color/colorDarkerLightBlue"
+               app:fab_label="Request"
+               app:fab_size="mini"
+               app:layout_constraintBottom_toTopOf="@+id/floatingActionButtonLogOut"
+               app:layout_constraintEnd_toEndOf="parent" />
+
+          <com.github.clans.fab.FloatingActionButton
+               android:id="@+id/floatingActionButtonSync"
+               android:layout_width="wrap_content"
+               android:layout_height="wrap_content"
+               android:layout_marginBottom="1dp"
+               android:layout_marginEnd="47dp"
+               android:layout_marginRight="47dp"
+               android:src="@drawable/sync"
+               app:fab_colorNormal="@color/colorDarkerLightBlue"
+               app:fab_label="Sync"
+               app:fab_size="mini"
+               app:layout_constraintBottom_toTopOf="@+id/floatingActionButtonRequest"
+               app:layout_constraintEnd_toEndOf="parent" />
+     </com.github.clans.fab.FloatingActionMenu>
+
+
+     <TextView
+          android:id="@+id/miniHeader"
+          android:layout_width="221dp"
+          android:layout_height="29dp"
+          android:layout_marginStart="72dp"
+          android:layout_marginLeft="72dp"
+          android:layout_marginTop="28dp"
+          android:background="@drawable/shape_request_header"
+          android:lineSpacingExtra="10sp"
+          android:padding="3sp"
+          android:text="Requests"
+          android:textAlignment="center"
+          android:textColor="@color/colorWhite"
+          android:textSize="13sp"
+          app:layout_constraintStart_toStartOf="parent"
+          app:layout_constraintTop_toBottomOf="@+id/compactCalendarView" />
+
+
+     <ImageButton
+          android:id="@+id/rejectedImageButton"
+          android:layout_width="119dp"
+          android:layout_height="109dp"
+          android:layout_marginStart="60dp"
+          android:layout_marginLeft="60dp"
+          android:background="?attr/selectableItemBackgroundBorderless"
+          android:padding="10dp"
+          android:scaleType="fitCenter"
+          android:src="@drawable/rejected"
+          android:text="Button"
+          android:tint="@color/colorSuperLightBlue"
+          app:layout_constraintStart_toStartOf="parent"
+          app:layout_constraintTop_toBottomOf="@+id/miniHeader" />
+
+     <ImageButton
+          android:id="@+id/pendingImageButton"
+          android:layout_width="117dp"
+          android:layout_height="109dp"
+          android:layout_marginStart="12dp"
+          android:layout_marginLeft="12dp"
+          android:layout_marginTop="56dp"
+          android:background="?attr/selectableItemBackgroundBorderless"
+          android:padding="10dp"
+          android:scaleType="fitCenter"
+          android:src="@drawable/pending"
+          android:text="Button"
+          android:tint="@color/colorSuperLightBlue"
+          app:layout_constraintStart_toEndOf="@+id/rejectedImageButton"
+          app:layout_constraintTop_toBottomOf="@+id/compactCalendarView" />
+
+
+</android.support.constraint.ConstraintLayout>
